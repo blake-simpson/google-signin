@@ -57,13 +57,40 @@ export class GoogleSignInError extends Error {
   constructor(
     code: StatusCode,
     message: string,
-    userInfo?: Record<string, string>
+    userInfo?: Record<string, string>,
+    options?: { cause?: unknown }
   ) {
-    super(message)
+    super(message, options)
     this.name = 'GoogleSignInError'
     this.code = code
     this.userInfo = userInfo
   }
+}
+
+const isStatusCode = (value: string): value is StatusCode =>
+  Object.values(statusCodes).includes(value as StatusCode)
+
+// Native throws `[CODE] message`; Nitro may put its own prefix in front of it.
+const BRIDGED_ERROR = /\[([A-Z_]+)\] ([\s\S]*)$/
+
+/**
+ * Turns an error that crossed the Nitro bridge back into a {@link GoogleSignInError}.
+ *
+ * Nitro rejects with the native error's text alone, so the native side writes the
+ * status code into that text as a `[CODE] ` prefix. This reads it back out, keeps
+ * the bridged error as `cause`, and returns anything it does not recognise unchanged.
+ */
+export function toGoogleSignInError(error: unknown): unknown {
+  if (error instanceof GoogleSignInError || !(error instanceof Error)) {
+    return error
+  }
+  const match = BRIDGED_ERROR.exec(error.message)
+  const code = match?.[1]
+  const message = match?.[2]
+  if (code === undefined || message === undefined || !isStatusCode(code)) {
+    return error
+  }
+  return new GoogleSignInError(code, message, undefined, { cause: error })
 }
 
 /**

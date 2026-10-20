@@ -6,7 +6,7 @@ import GTMAppAuth
 import NitroModules
 import UIKit
 
-enum GoogleSignInNativeError: Error, LocalizedError {
+enum GoogleSignInNativeError: Error, LocalizedError, CustomStringConvertible {
   case playServicesNotAvailable(String)
   case oneTapStartFailed(String)
   case signInRequired(String)
@@ -37,6 +37,12 @@ enum GoogleSignInNativeError: Error, LocalizedError {
     case .notConfigured, .noActivity:
       return "IN_PROGRESS"
     }
+  }
+
+  // Nitro rejects the JS promise with String(describing:) alone, so the code travels in it.
+  // GoogleOneTapSignIn parses it back out on the JS side.
+  var description: String {
+    "[\(code)] \(errorDescription ?? "")"
   }
 }
 
