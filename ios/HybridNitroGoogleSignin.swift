@@ -12,6 +12,7 @@ enum GoogleSignInNativeError: Error, LocalizedError, CustomStringConvertible {
   case signInRequired(String)
   case notConfigured
   case noActivity
+  case urlSchemeMissing(String)
 
   var errorDescription: String? {
     switch self {
@@ -23,6 +24,9 @@ enum GoogleSignInNativeError: Error, LocalizedError, CustomStringConvertible {
       return "Google Sign-In is not configured. Call configure() first."
     case .noActivity:
       return "No view controller available to present sign-in."
+    case .urlSchemeMissing(let scheme):
+      return "Info.plist has no CFBundleURLSchemes entry for \(scheme). "
+        + "Add the reversed iOS client id as a URL scheme, or Google cannot return to the app."
     }
   }
 
@@ -36,6 +40,8 @@ enum GoogleSignInNativeError: Error, LocalizedError, CustomStringConvertible {
       return "SIGN_IN_REQUIRED"
     case .notConfigured, .noActivity:
       return "IN_PROGRESS"
+    case .urlSchemeMissing:
+      return "DEVELOPER_ERROR"
     }
   }
 
@@ -49,6 +55,7 @@ enum GoogleSignInNativeError: Error, LocalizedError, CustomStringConvertible {
 class HybridNitroGoogleSignin: HybridNitroGoogleSigninSpec {
   private var configured = false
   private var webClientId: String?
+  private var iosClientId: String?
   private var offlineAccess = false
   private var configuredNonce: String?
   private var configuredScopes: [String] = []
@@ -62,6 +69,7 @@ class HybridNitroGoogleSignin: HybridNitroGoogleSigninSpec {
     guard let iosClientId, !iosClientId.isEmpty else {
       throw GoogleSignInNativeError.notConfigured
     }
+    self.iosClientId = iosClientId
 
     offlineAccess = params.offlineAccess ?? false
     configuredNonce = Self.variantToString(params.nonce)
@@ -219,6 +227,7 @@ class HybridNitroGoogleSignin: HybridNitroGoogleSigninSpec {
     guard let presenting = Self.topViewController() else {
       throw GoogleSignInNativeError.noActivity
     }
+    try ensureCallbackSchemeRegistered()
 
     let additionalScopes = configuredScopes.isEmpty ? nil : configuredScopes
     let nonce = Self.resolveNonce(configuredNonce)
@@ -452,6 +461,7 @@ class HybridNitroGoogleSignin: HybridNitroGoogleSigninSpec {
     guard let presenting = Self.topViewController() else {
       throw GoogleSignInNativeError.noActivity
     }
+    try ensureCallbackSchemeRegistered()
     guard GIDSignIn.sharedInstance.currentUser != nil else {
       throw GoogleSignInNativeError.oneTapStartFailed(
         "No signed-in Google user. Sign in before requesting additional scopes."
@@ -592,6 +602,20 @@ class HybridNitroGoogleSignin: HybridNitroGoogleSigninSpec {
   private func ensureConfigured() throws {
     guard configured, webClientId != nil else {
       throw GoogleSignInNativeError.notConfigured
+    }
+  }
+
+  /// GoogleSignIn raises an NSException, which Swift cannot catch, when the reversed
+  /// client id is not a registered URL scheme. This runs the same check first and throws.
+  private func ensureCallbackSchemeRegistered() throws {
+    guard let iosClientId else { return }
+    let scheme = iosClientId.split(separator: ".").reversed().joined(separator: ".").lowercased()
+    let urlTypes = Bundle.main.object(forInfoDictionaryKey: "CFBundleURLTypes") as? [[String: Any]] ?? []
+    let registered = urlTypes
+      .flatMap { ($0["CFBundleURLSchemes"] as? [String]) ?? [] }
+      .map { $0.lowercased() }
+    guard registered.contains(scheme) else {
+      throw GoogleSignInNativeError.urlSchemeMissing(scheme)
     }
   }
 

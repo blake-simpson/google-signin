@@ -37,10 +37,12 @@ export const statusCodes = {
   /** User cancelled an authorization or sign-in flow. */
   SIGN_IN_CANCELLED: 'SIGN_IN_CANCELLED',
   /**
-   * Android OAuth misconfiguration (wrong/missing SHA-1, package name, or
-   * Android client ID used as `webClientId`). Thrown when Credential Manager /
+   * OAuth misconfiguration. Android: wrong/missing SHA-1, package name, or
+   * Android client ID used as `webClientId`, thrown when Credential Manager /
    * AuthorizationClient surfaces a developer error — not for silent `cancelled`
    * responses (see troubleshooting for production `cancelled` after account pick).
+   * iOS: the reversed client id is not a registered URL scheme in Info.plist,
+   * thrown before GoogleSignIn would raise an uncatchable NSException for it.
    */
   DEVELOPER_ERROR: 'DEVELOPER_ERROR',
 } as const
