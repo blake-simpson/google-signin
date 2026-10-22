@@ -55,14 +55,15 @@ export class GoogleSignInError extends Error {
   code: StatusCode
   /** Optional metadata (e.g. Play Services status on Android). */
   userInfo?: Record<string, string>
+  /** The raw error that crossed the Nitro bridge, when there was one. */
+  cause?: unknown
 
   constructor(
     code: StatusCode,
     message: string,
-    userInfo?: Record<string, string>,
-    options?: { cause?: unknown }
+    userInfo?: Record<string, string>
   ) {
-    super(message, options)
+    super(message)
     this.name = 'GoogleSignInError'
     this.code = code
     this.userInfo = userInfo
@@ -72,8 +73,11 @@ export class GoogleSignInError extends Error {
 const isStatusCode = (value: string): value is StatusCode =>
   Object.values(statusCodes).includes(value as StatusCode)
 
-// Native throws `[CODE] message`; Nitro may put its own prefix in front of it.
-const BRIDGED_ERROR = /\[([A-Z_]+)\] ([\s\S]*)$/
+// `[CODE] message`, or `NitroGoogleSignin.method(...): [CODE] message` for a synchronous throw.
+const BRIDGED_ERROR = /^(?:[\w.]+\(\.\.\.\): )?\[([A-Z_]+)\] ([\s\S]*)$/
+
+// Android appends the Kotlin stack trace to the text Nitro passes on.
+const STACK_TRACE_START = '\n\tat '
 
 /**
  * Turns an error that crossed the Nitro bridge back into a {@link GoogleSignInError}.
@@ -88,11 +92,14 @@ export function toGoogleSignInError(error: unknown): unknown {
   }
   const match = BRIDGED_ERROR.exec(error.message)
   const code = match?.[1]
-  const message = match?.[2]
-  if (code === undefined || message === undefined || !isStatusCode(code)) {
+  const text = match?.[2]
+  if (code === undefined || text === undefined || !isStatusCode(code)) {
     return error
   }
-  return new GoogleSignInError(code, message, undefined, { cause: error })
+  const message = text.split(STACK_TRACE_START, 1)[0] ?? text
+  const bridged = new GoogleSignInError(code, message)
+  bridged.cause = error
+  return bridged
 }
 
 /**
