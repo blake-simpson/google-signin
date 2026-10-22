@@ -14,7 +14,7 @@ enum GoogleSignInNativeError: Error, LocalizedError, CustomStringConvertible {
   case noActivity
   case urlSchemeMissing(String)
 
-  var errorDescription: String? {
+  var message: String {
     switch self {
     case .playServicesNotAvailable(let msg),
          .oneTapStartFailed(let msg),
@@ -45,10 +45,12 @@ enum GoogleSignInNativeError: Error, LocalizedError, CustomStringConvertible {
     }
   }
 
-  // Nitro rejects the JS promise with String(describing:) alone, so the code travels in it.
-  // GoogleOneTapSignIn parses it back out on the JS side.
+  var errorDescription: String? { message }
+
+  // NitroModules Error.toCpp() sends String(describing:) as the JS error text, so the code travels in it.
+  // toGoogleSignInError parses it back out on the JS side.
   var description: String {
-    "[\(code)] \(errorDescription ?? "")"
+    "[\(code)] \(message)"
   }
 }
 
