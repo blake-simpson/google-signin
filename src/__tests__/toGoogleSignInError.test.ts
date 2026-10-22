@@ -77,6 +77,13 @@ describe('toGoogleSignInError', () => {
     const original = new GoogleSignInError('SIGN_IN_REQUIRED', 'x')
     expect(toGoogleSignInError(original)).toBe(original)
   })
+
+  test('recognises the Android sign-out and revoke codes', () => {
+    for (const code of ['SIGN_OUT_FAILED', 'REVOKE_ACCESS_FAILED'] as const) {
+      const error = toGoogleSignInError(new Error(`[${code}] failed`))
+      expect((error as GoogleSignInError).code).toBe(code)
+    }
+  })
 })
 
 describe('bridged', () => {

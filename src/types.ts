@@ -45,6 +45,10 @@ export const statusCodes = {
    * thrown before GoogleSignIn would raise an uncatchable NSException for it.
    */
   DEVELOPER_ERROR: 'DEVELOPER_ERROR',
+  /** Android — clearing the Credential Manager state failed during `signOut()`. */
+  SIGN_OUT_FAILED: 'SIGN_OUT_FAILED',
+  /** Android — `revokeAccess()` could not revoke the grant. */
+  REVOKE_ACCESS_FAILED: 'REVOKE_ACCESS_FAILED',
 } as const
 
 export type StatusCode = (typeof statusCodes)[keyof typeof statusCodes]
