@@ -102,6 +102,17 @@ export function toGoogleSignInError(error: unknown): unknown {
   return bridged
 }
 
+/** Runs a native call and gives both a synchronous throw and a rejection their `code` back. */
+export function bridged<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return call().catch((error: unknown) => {
+      throw toGoogleSignInError(error)
+    })
+  } catch (error) {
+    throw toGoogleSignInError(error)
+  }
+}
+
 /**
  * Type guard for errors with a `code` and `message` (including native bridged errors).
  *

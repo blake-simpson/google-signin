@@ -7,16 +7,10 @@ import type {
   OneTapResponse,
   OneTapSuccessData,
 } from './specs/nitro-google-signin.nitro'
-import { toGoogleSignInError } from './types'
+import { bridged, toGoogleSignInError } from './types'
 
 const hybrid =
   NitroModules.createHybridObject<NitroGoogleSignin>('NitroGoogleSignin')
-
-/** Rejections cross the bridge as plain text; give them their `code` back. */
-const bridged = <T>(promise: Promise<T>): Promise<T> =>
-  promise.catch((error: unknown) => {
-    throw toGoogleSignInError(error)
-  })
 
 /**
  * Universal (One Tap) Google Sign-In for React Native on iOS and Android.
@@ -47,7 +41,7 @@ export const GoogleOneTapSignIn = {
    * @throws {@link GoogleSignInError} with `PLAY_SERVICES_NOT_AVAILABLE` on Android when unavailable.
    */
   checkPlayServices(showErrorResolutionDialog = true): Promise<void> {
-    return bridged(hybrid.checkPlayServices(showErrorResolutionDialog))
+    return bridged(() => hybrid.checkPlayServices(showErrorResolutionDialog))
   },
 
   /**
@@ -64,7 +58,7 @@ export const GoogleOneTapSignIn = {
    * User cancel is returned as `type: 'cancelled'`, not thrown.
    */
   signIn(): Promise<OneTapResponse> {
-    return bridged(hybrid.signIn())
+    return bridged(() => hybrid.signIn())
   },
 
   /**
@@ -74,7 +68,7 @@ export const GoogleOneTapSignIn = {
    * iOS: interactive `signIn(withPresenting:)`.
    */
   createAccount(): Promise<OneTapResponse> {
-    return bridged(hybrid.createAccount())
+    return bridged(() => hybrid.createAccount())
   },
 
   /**
@@ -86,7 +80,7 @@ export const GoogleOneTapSignIn = {
    * iOS: same interactive flow as {@link createAccount}.
    */
   presentExplicitSignIn(): Promise<OneTapResponse> {
-    return bridged(hybrid.presentExplicitSignIn())
+    return bridged(() => hybrid.presentExplicitSignIn())
   },
 
   /**
@@ -102,7 +96,7 @@ export const GoogleOneTapSignIn = {
    * @param scopes Full OAuth scope URLs (not short names).
    */
   requestScopes(scopes: string[]): Promise<OneTapAuthorizationResult> {
-    return bridged(hybrid.requestScopes(scopes))
+    return bridged(() => hybrid.requestScopes(scopes))
   },
 
   /**
@@ -134,7 +128,7 @@ export const GoogleOneTapSignIn = {
    * @throws {@link GoogleSignInError} with `SIGN_IN_REQUIRED` when no user is signed in.
    */
   getTokens(): Promise<GetTokensResponse> {
-    return bridged(hybrid.getTokens())
+    return bridged(() => hybrid.getTokens())
   },
 
   /**
@@ -147,12 +141,12 @@ export const GoogleOneTapSignIn = {
    * a new access token from Google.
    */
   clearCachedAccessToken(accessTokenString: string): Promise<void> {
-    return bridged(hybrid.clearCachedAccessToken(accessTokenString))
+    return bridged(() => hybrid.clearCachedAccessToken(accessTokenString))
   },
 
   /** Clear the Google Sign-In session in the native SDK. */
   signOut(): Promise<void> {
-    return bridged(hybrid.signOut())
+    return bridged(() => hybrid.signOut())
   },
 
   /**
@@ -168,6 +162,6 @@ export const GoogleOneTapSignIn = {
    * @param emailOrUniqueId User email or stable Google account id (`OneTapUser.id`).
    */
   revokeAccess(emailOrUniqueId: string): Promise<void> {
-    return bridged(hybrid.revokeAccess(emailOrUniqueId))
+    return bridged(() => hybrid.revokeAccess(emailOrUniqueId))
   },
 }
